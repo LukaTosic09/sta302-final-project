@@ -8,6 +8,9 @@ output:
 ---
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE}
+
+library(lubbridate)
+
 # Load the dataset
 data <- read.csv("kijiji_rental_ads_4106.csv")
 

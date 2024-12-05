@@ -1,0 +1,228 @@
+---
+title: 'STA302 Project part 1'
+author: "Hilary"
+date: "2024-10-11"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+# Load the dataset
+data <- read.csv("kijiji_rental_ads_4106.csv")
+
+data <- data[, c("Price...", "Date.Posted", "Bedrooms", 
+                 "Bathrooms", "Building.Type", "Size..sqft.", "Pet.Friendly")]
+
+colnames(data) <- c("Price", "Days_on_Market", "Number_of_Bedrooms", 
+                    "Number_of_Bathrooms", "Building_Type", "Rental_Size", 
+                    "Pet_Friendliness")
+
+#insert outlier removal here
+# Function to remove outliers using IQR for a given vector
+
+# Function to remove outliers using IQR for given vector, return a logical index
+remove_outliers <- function(x) {
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  return(x >= lower_bound & x <= upper_bound)
+}
+
+# Function to remove outliers using IQR for a given numeric vector and return a logical index
+remove_outliers <- function(x) {
+  if (is.numeric(x)) {  # Check if the column is numeric
+    Q1 <- quantile(x, 0.25, na.rm = TRUE)
+    Q3 <- quantile(x, 0.75, na.rm = TRUE)
+    IQR <- Q3 - Q1
+    lower_bound <- Q1 - 1.5 * IQR
+    upper_bound <- Q3 + 1.5 * IQR
+    return(x >= lower_bound & x <= upper_bound)
+  } else {
+    return(rep(TRUE, length(x)))  # If it's not numeric, then return TRUE for all entries
+  }
+}
+
+index <- remove_outliers(data$Price) &
+         remove_outliers(data$Days_on_Market) &
+         remove_outliers(data$Number_of_Bedrooms) &
+         remove_outliers(data$Number_of_Bathrooms) &
+         remove_outliers(data$Rental_Size)
+
+windex <- remove_outliers(data$Days_on_Market)
+
+data_clean <- data[index, ]
+
+# Remove commas and convert Rental_Size to numeric
+data_clean$Rental_Size <- gsub(",", "", data_clean$Rental_Size) 
+data_clean$Rental_Size <- as.numeric(data_clean$Rental_Size)    
+
+# Clean Number_of_Bedrooms by replacing text and converting to numeric
+data_clean$Number_of_Bedrooms <- gsub("Bachelor/Studio", "0", data_clean$Number_of_Bedrooms)  
+data_clean$Number_of_Bedrooms <- as.numeric(data_clean$Number_of_Bedrooms)  
+
+# Convert Number_of_Bathrooms to numeric
+# Replace "Not Available" or other texts with NA to handle non-numeric entries
+data_clean$Number_of_Bathrooms <- gsub("Not Available", NA, data_clean$Number_of_Bathrooms)  
+data_clean$Number_of_Bathrooms <- as.numeric(data_clean$Number_of_Bathrooms) 
+
+#convert date format to days
+fixed_date <- ymd("2024-10-10")
+data_clean$Days_on_Market <- as.Date((data_clean$Days_on_Market))
+data_clean$Days_on_Market <- as.numeric(difftime(fixed_date, data_clean$Days_on_Market, units = "days"))
+
+data_clean <- data_clean |> filter(!is.na(Days_on_Market), !is.na(Number_of_Bedrooms), !is.na(Number_of_Bathrooms), !is.na(Rental_Size))
+```
+
+
+```{r}
+
+```
+
+
+
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+
+library(ggplot2)
+library(patchwork)
+
+# Fit the linear model
+model1 <- lm(Price ~ Days_on_Market + Number_of_Bedrooms + Number_of_Bathrooms + Rental_Size, data = data_clean)
+
+# Create ggplot residual plots
+# Residuals vs Fitted Values
+plot_residuals_vs_fitted <- ggplot(data.frame(Fitted = fitted(model1), Residuals = residuals(model1)), 
+                                   aes(x = Fitted, y = Residuals)) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Fitted Values", x = "Fitted Values", y = "Residuals") +
+  theme_minimal()
+
+# Residuals vs Days on Market
+plot_residuals_vs_days <- ggplot(data_clean, aes(x = Days_on_Market, y = residuals(model1))) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Days on Market", x = "Days on Market", y = "Residuals") +
+  theme_minimal()
+
+# Residuals vs Number of Bedrooms
+plot_residuals_vs_bedrooms <- ggplot(data_clean, aes(x = Number_of_Bedrooms, y = residuals(model1))) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Number of Bedrooms", x = "Number of Bedrooms", y = "Residuals") +
+  theme_minimal()
+
+# Residuals vs Number of Bathrooms
+plot_residuals_vs_bathrooms <- ggplot(data_clean, aes(x = Number_of_Bathrooms, y = residuals(model1))) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Number of Bathrooms", x = "Number of Bathrooms", y = "Residuals") +
+  theme_minimal()
+
+# Residuals vs Rental Size
+plot_residuals_vs_rental <- ggplot(data_clean, aes(x = Rental_Size, y = residuals(model1))) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Rental Size", x = "Rental Size", y = "Residuals") +
+  theme_minimal()
+
+# Normal Q-Q Plot
+plot_qq <- ggplot(data.frame(Residuals = residuals(model1)), aes(sample = Residuals)) +
+  stat_qq(color = "black", shape=1) +
+  stat_qq_line(color = "red") +
+  labs(title = "Normal Q-Q Plot", x = "Theoretical Quantiles", y = "Sample Quantiles") +
+  theme_minimal()
+
+# Arrange the plots using patchwork
+combined_plot <- (
+  (plot_residuals_vs_days | plot_residuals_vs_bedrooms) /
+  (plot_residuals_vs_rental | plot_residuals_vs_bathrooms) /
+  (plot_residuals_vs_fitted | plot_qq) 
+)
+
+# Display the combined plot
+print(combined_plot)
+
+```
+
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+# Fit the linear model
+model2 <- lm(Price ~ Days_on_Market + Number_of_Bedrooms + Building_Type + Rental_Size, data = data_clean)
+
+# Create ggplot residual plots
+# Residuals vs Fitted Values
+plot_residuals_vs_fitted <- ggplot(data.frame(Fitted = fitted(model2), Residuals = residuals(model2)), 
+                                   aes(x = Fitted, y = Residuals)) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Fitted Values", x = "Fitted Values", y = "Residuals") +
+  theme_minimal()
+
+# Residuals vs Days on Market
+plot_residuals_vs_days <- ggplot(data_clean, aes(x = Days_on_Market, y = residuals(model1))) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Days on Market", x = "Days on Market", y = "Residuals") +
+  theme_minimal()
+
+# Residuals vs Number of Bedrooms
+plot_residuals_vs_bedrooms <- ggplot(data_clean, aes(x = Number_of_Bedrooms, y = residuals(model1))) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Number of Bedrooms", x = "Number of Bedrooms", y = "Residuals") +
+  theme_minimal()
+
+# Residuals vs Building Type
+plot_residuals_vs_type <- ggplot(data_clean, aes(x = Building_Type, y = residuals(model2))) +
+  geom_boxplot(aes(color = Building_Type)) + 
+   
+  labs(title = "Residuals vs Building Type", x = "Building Type", y = "Residuals") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 10),
+    axis.title = element_text(size = 12),
+    ,legend.position = "none")
+
+# Residuals vs Rental Size
+plot_residuals_vs_rental <- ggplot(data_clean, aes(x = Rental_Size, y = residuals(model2))) +
+  geom_point(color = "blue", size = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Rental Size", x = "Rental Size", y = "Residuals") +
+  theme_minimal()
+
+# Normal Q-Q Plot
+plot_qq <- ggplot(data.frame(Residuals = residuals(model2)), aes(sample = Residuals)) +
+  stat_qq(color = "black", shape=1) +
+  stat_qq_line(color = "red") +
+  labs(title = "Normal Q-Q Plot", x = "Theoretical Quantiles", y = "Sample Quantiles") +
+  theme_minimal()
+
+# Arrange the plots using patchwork
+combined_plot2 <- (
+  (plot_residuals_vs_days | plot_residuals_vs_bedrooms) /
+  (plot_residuals_vs_rental ) /
+  (plot_residuals_vs_fitted | plot_qq)
+)
+
+building_plot <- ((plot_residuals_vs_type))
+
+# Display the combined plot
+print(combined_plot2)
+print(building_plot)
+```
+
+1. Residuals vs. Fitted Values
+In the plot, residuals  are plotted against the fitted values . The residuals do not show a clear pattern but cluster slightly, suggesting the linearity assumption is fitted. 
+2. Histogram of Residuals
+The histogram shows the distribution of residuals. While the residuals appear close to normal, small deviations affect confidence intervals and p-values. If deviations from normality are significant, we can apply a Box-Cox to help with analysis.
+3. Normal Q-Q Plot
+The residuals mostly follow the reference line, but there are slight deviations at the tails. This suggests that the residuals are approximately normal, but the deviations at the tails might indicate some outliers.
+
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+library(MASS)
+# Visualize the Box-Cox transformation
+boxcox(model, lambda = seq(-2, 2, by = 0.1))  # Adjust lambda range if needed
+```

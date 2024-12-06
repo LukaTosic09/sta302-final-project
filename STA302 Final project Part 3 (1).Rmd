@@ -1,16 +1,64 @@
 ---
 title: 'STA302 Project part 1'
-author: "Hilary"
-date: "2024-10-11"
+author: "Hilary Zou, Luka Tosic, Henry Zhang"
+date: "2024-12-06"
 output:
   pdf_document: default
   html_document: default
 ---
+# Introduction
 
+Understanding the variables influencing rental pricing in Toronto is essential since the city’s competitive real estate market and affordability concerns are escalating. This study investigates the effects of time on the market and property attributes (such as the number of bedrooms, number of bathrooms, building type, and pet friendliness) on rental pricing. This study attempts to answer “How do property features and time on the market influence rental prices in Toronto?”. The findings will help regulators, landlords, and tenants understand pricing trends and help them benefit. 
+
+The relevancy of the study is supported by the three journal articles we found. Muraleedharan (2019) demonstrates how pet-friendly legislation can increase a property's attractiveness and value in his article. Although they only looked at property sales, Krashinsky and Milne (1987) emphasized the effect of time on real estate market demand. Pi (2017) showed how facilities like parking can significantly impact rental costs. Combining these results, this study uses the Toronto rental data set to examine the various effects on rental pricing.
+
+Linear regression works best for our research because it can quantify the relationship between rental prices and a number of predictors. By employing this methodology, the study fills the gap in the current research by examining a combination of factors—property features and time on the market—that have not been fully explored together in the context of Toronto’s rental market and provides a way to better understand Toronto's complex rental market.
+
+The following sections detail the process of arriving at a final descriptive model.
+
+
+# Methods
+
+## Model Creation
+
+First, we start with two candidate models model1 and model2 for the response variable price. The rationale behind starting with two candidate models initially is that we are trying to create detailed desciptive models with predictors that are contextually meaningful. To that end, we had a broad idea of what predictors we were interested in already, and we wanted to avoid going through the process of using the All Possible Subsets method or Automated Selection Methods as there were some potential predictors that were not interested in either because of missing data or due to lack of relevance. Moreover, of the predictors we are interested in, there were several models that the ASP or automated selection methods would have fit that would have been missing key predictors. In the end, we decided that only the number of bathrooms and rental type were predictors we felt could be left out of a model, so we fit one with one of each. A final note to be expanded on in the limitations section is that there are other potentially strong predictors in the dataset, but we were looking to avoid overfitting individual models, and did have the capacity to compare more models at this stage.
+
+
+## Model Diagnostics
+
+
+### Residuals
+Before these models are compared, several diagnostics are run on them individually to determine their overall quality and whether they should be refit or transformed in any way. The first is to create residual plots for both models, those being residuals vs fitted, residuals, vs each predictor, and a quantile-quantile plot. The residuals are the sample errors given by $\hat{e}_i=y_i-\hat{\mathbb{E}}[y_i|x_i]$. The residual plots are created to assess the assumptions on linear regression that are made implicitly any time a model is fit. If we are to have meaningful results from our model, we want to make sure that our model follows these assumptions as well as possible. 
+
+We plot the residual plots described above and analyze them for the following patterns: any systematic patterns can point to violations of all but normality, any functional relationships of predictors pointing to violations of linearity, clustering patterns pointing to violations of uncorrelated errors, fanning patterns pointing to constant variance violations, and significant deviations from the linear trend in the qq plot pointing to normality violations. 
+
+Additionally, we analyzed the residual plots and predictor vs predictor plots for Conditional Mean Response and Predictor violations.
+
+### Multicollinearity and Significance
+
+We also analyzed the VIF of both models for their numerical predictors to determine the multicollinearity of the predictors. No refitting was done based on this.
+
+As well, we performed an ANOVA test for both models to test their overall significance, and since we would not be removing any predictors, we did not create hypothesis tests on the significance of individual predictors, or a Partial - F test.
+
+## Mitigating Violations
+
+As will be discussed in the results section below, both models saw severe violations of uncorrelated errors, for which there is no applicable method to mitigate the impact of. Additionally, some moderate violation of normality was observed for both, so a box-cox transformation would be applied to both models individually.
+
+## Model Comparison
+
+We are looking to choose only one of the two models we initially fit, and after running diagnostics to check for major issues with either model, we compare them directly via numerical measures of goodness. The ones we chose are the adjusted R squared $R_{adj}^2$, Akaike's Information Criteria $AIC$, and Bayesian Information Criteria $BIC$.
+We felt that these would be sufficient for us to be able to decide on one model.
+
+
+
+# Results
+
+
+## Residuals of Model1
 ```{r warning=FALSE, echo=FALSE, message=FALSE}
 
-library(lubbridate)
-
+library(tidyverse)
+library(lubridate)
 # Load the dataset
 data <- read.csv("kijiji_rental_ads_4106.csv")
 
@@ -54,8 +102,6 @@ index <- remove_outliers(data$Price) &
          remove_outliers(data$Number_of_Bathrooms) &
          remove_outliers(data$Rental_Size)
 
-windex <- remove_outliers(data$Days_on_Market)
-
 data_clean <- data[index, ]
 
 # Remove commas and convert Rental_Size to numeric
@@ -78,12 +124,6 @@ data_clean$Days_on_Market <- as.numeric(difftime(fixed_date, data_clean$Days_on_
 
 data_clean <- data_clean |> filter(!is.na(Days_on_Market), !is.na(Number_of_Bedrooms), !is.na(Number_of_Bathrooms), !is.na(Rental_Size))
 ```
-
-
-```{r}
-
-```
-
 
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE}
@@ -149,6 +189,8 @@ combined_plot <- (
 print(combined_plot)
 
 ```
+
+## Residuals of Model2
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE}
 # Fit the linear model
@@ -224,8 +266,62 @@ The histogram shows the distribution of residuals. While the residuals appear cl
 3. Normal Q-Q Plot
 The residuals mostly follow the reference line, but there are slight deviations at the tails. This suggests that the residuals are approximately normal, but the deviations at the tails might indicate some outliers.
 
+
+
+## Violation Correcting
 ```{r warning=FALSE, echo=FALSE, message=FALSE}
 library(MASS)
 # Visualize the Box-Cox transformation
-boxcox(model, lambda = seq(-2, 2, by = 0.1))  # Adjust lambda range if needed
+boxcox(model1, lambda = seq(-2, 2, by = 0.1))  # Adjust lambda range if needed
 ```
+## Model Selection Criteria
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+summary(model1)
+summary(model2)
+```
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+library(car)
+
+
+# Perform ANOVA test to compare models
+anova_test <- anova(model1, model2)
+print("ANOVA Test Results:")
+print(anova_test)
+
+# Calculate Variance Inflation Factor (VIF) for both models
+vif_model1 <- vif(model1)
+vif_model2 <- vif(model2)
+
+print("VIF for Model 1:")
+print(vif_model1)
+
+print("VIF for Model 2:")
+print(vif_model2)
+
+# Calculate model metrics (AIC, BIC, R-squared)
+# Model 1
+aic_model1 <- AIC(model1)
+bic_model1 <- BIC(model1)
+r2_model1 <- summary(model1)$r.squared
+
+# Model 2
+aic_model2 <- AIC(model2)
+bic_model2 <- BIC(model2)
+r2_model2 <- summary(model2)$r.squared
+
+
+```
+
+
+
+# Ethics Discussion
+
+
+
+
+# Conclusion and Limitations
+
+
+
+

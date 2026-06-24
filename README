@@ -1,15 +1,14 @@
-Toronto Rental Market Analysis
-Overview
+# Toronto Rental Market Analysis
+## Overview
 
 This project investigates how property characteristics and market exposure influence rental prices in Toronto. Using rental listing data, we developed and evaluated multiple linear regression models to identify factors associated with rental pricing and assess their relative importance.
 
-The project was completed as part of an upper-year statistical modelling course at the University of Toronto.
 
-Research Question
+## Research Question
 
 How do property features and time on market influence rental prices in Toronto?
 
-Predictors examined include:
+## Predictors examined include:
 
 Number of bedrooms
 Number of bathrooms
@@ -32,7 +31,7 @@ Statistical Modelling
 
 Two candidate multiple linear regression models were developed and compared.
 
-Model diagnostics included:
+## Model diagnostics included:
 
 Residual analysis
 Q-Q plots
@@ -53,12 +52,4 @@ Data Cleaning
 Exploratory Data Analysis (EDA)
 Outlier Detection
 Feature Engineering
-Programming
-R
-Tidyverse
-ggplot2
-Statistical Modelling Packages
-Data Visualization
-Residual Diagnostics
-Distribution Analysis
-Model Performance Visualization
+
